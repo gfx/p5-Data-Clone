@@ -4,28 +4,22 @@ use strict;
 
 use Benchmark qw(:all);
 
+use Storable ();
 use Clone ();
 use Data::Clone ();
 
-print "Scalar:\n";
-cmpthese -1 => {
-    Clone => sub{
-        my $x = Clone::clone("foobar");
-    },
-    'Data::Clone' => sub{
-        my $x = Data::Clone::clone("foobar");
-    },
-};
-
 my @array = (
     [1 .. 10],
-    ["foo", "bar", "baz"]
+    [1 .. 10]
 );
 
-print "Array:\n";
+print "ArrayRef:\n";
 cmpthese -1 => {
-    Clone => sub{
+    'Clone' => sub{
         my $x = Clone::clone(\@array);
+    },
+    'Storable' => sub{
+        my $x = Storable::dclone(\@array);
     },
     'Data::Clone' => sub{
         my $x = Data::Clone::clone(\@array);
@@ -35,10 +29,13 @@ cmpthese -1 => {
 my %hash = (
     key => \@array,
 );
-print "Hash:\n";
+print "HashRef:\n";
 cmpthese -1 => {
-    Clone => sub{
+    'Clone' => sub{
         my $x = Clone::clone(\%hash);
+    },
+    'Storable' => sub{
+        my $x = Storable::dclone(\%hash);
     },
     'Data::Clone' => sub{
         my $x = Data::Clone::clone(\%hash);
