@@ -24,32 +24,54 @@ This document describes Data::Clone version 0.001.
 
 =head1 SYNOPSIS
 
+    # as a function
     use Data::Clone;
 
     my $cloned = clone($data);
 
+    # makes Foo clonable
+    package Foo;
+    use Data::Clone;
+    # ...
+
+    # Foo is clonable
+    my $o = Foo->new();
+    my $c = clone($o); # $o is deeply copied
+
+    # used for custom clone methods
+    package Bar;
+    use Data::Clone qw(data_clone);
+    # ...
+    sub clone {
+        my($proto) = @_;
+        m $object  = data_clone($proto);
+        $object->do_something();
+        return $object;
+    }
+
+    # Bar is also clonable
+    $o = Bar->new();
+    $c = clone($o); # Bar::clone() is called
+
 =head1 DESCRIPTION
 
-Data::Clone provides blah blah blah.
+Data::Clone does data cloning, i.e. copies things recursively. This is
+smart so that it works with not only non-blessed references, but also with
+blessed references (i.e. objects). When C<clone()> finds an object, it
+calls a C<clone> method of the object if the object has a C<clone>, otherwise
+it makes a surface copy of the object.
 
 =head1 INTERFACE
 
-=head2 Class methods
+=head2 Exported functions
 
-=over 4
+=head3 B<< clone(Scalar) >>
 
-=item *
+=head2 Exportable functions
 
-=back
+=head3 B<< data_clone(Salar) >>
 
-=head2 Instance methods
-
-=over 4
-
-=item *
-
-=back
-
+The same as C<clone()>. Provided for custom clone methods.
 
 =head1 DEPENDENCIES
 
@@ -63,7 +85,7 @@ Please report any bugs or feature requests to the author.
 
 =head1 SEE ALSO
 
-L<perl>
+L<Clone>, C<Storable>
 
 =head1 AUTHOR
 
