@@ -62,6 +62,56 @@ blessed references (i.e. objects). When C<clone()> finds an object, it
 calls a C<clone> method of the object if the object has a C<clone>, otherwise
 it makes a surface copy of the object.
 
+=head2 Cloning policy
+
+=head3 Scalar references
+
+Scalar references are B<not> copied deeply. They are copied in surface
+because it is typically used to refer to something special, namely
+global variables or magical variables.
+
+=head3 Array references
+
+Array references are copied deeply.
+
+=head3 Hash references
+
+Hash references are copied deeply.
+
+=head3 Glob, IO and Code references
+
+These references are B<not> copied deeply. They are copied in surface.
+
+=head3 Blessed references (objects)
+
+Blessed references are B<not> copied deeply by default. They will be copied
+deeply when Data::Clone knows they are clonable, i.e. they have a C<clone>
+method.
+
+If you want an object clonable, you can use the C<clone()> function as a method:
+
+    package Your::Class;
+    use Data::Clone;
+
+    # ...
+
+    my $c = clone($your_object); # $your_object->clone() will be called
+
+Or you can import C<data_clone()> function to define your custom clone method:
+
+    package Your::Class;
+    use Data::Clone qw(data_clone);
+
+    sub clone {
+        my($proto) = @_;
+        my $object = data_clone($proto);
+        # anything what you want
+        return $object;
+    }
+
+Of course, you can use C<Clone::clone()>, C<Storable::dclone()>, and/or
+anything you want.
+
 =head1 INTERFACE
 
 =head2 Exported functions
