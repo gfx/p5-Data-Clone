@@ -1,6 +1,11 @@
 use strict;
 use warnings;
 use inc::Module::Install;
+use Module::Install::XSUtil;
+
+BEGIN{
+    *auto_set_repository = sub{ } if !defined &auto_set_repository;
+}
 
 all_from 'lib/Data/Clone.pm';
 
@@ -11,7 +16,7 @@ requires_xs 'XS::Assert';
 
 test_requires 'Test::More' => 0.88; # done_testing()
 
-tests 't/*.t', 't/*/*.t';
+tests 't/*.t t/*/*.t';
 author_tests 'xt';
 
 auto_set_repository() if -d '.git';
