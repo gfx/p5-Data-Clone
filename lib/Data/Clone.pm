@@ -27,6 +27,7 @@ This document describes Data::Clone version 0.001.
     # as a function
     use Data::Clone;
 
+    my $data   = YAML::Load("foo.yml");
     my $cloned = clone($data);
 
     # makes Foo clonable
@@ -41,13 +42,13 @@ This document describes Data::Clone version 0.001.
     # used for custom clone methods
     package Bar;
     use Data::Clone qw(data_clone);
-    # ...
     sub clone {
         my($proto) = @_;
-        m $object  = data_clone($proto);
+        my $object = data_clone($proto);
         $object->do_something();
         return $object;
     }
+    # ...
 
     # Bar is also clonable
     $o = Bar->new();
