@@ -42,7 +42,7 @@ for(1 .. 2){ # do it twice to test TARG
     is Dumper(clone(\%h)), Dumper(\%h), 'ref to self (hash)';
 
     @a = ('foo', 'bar', \%h, \%h);
-    is Dumper(clone(\@a)), Dumper(\@a), 'ref to self';
+    is Dumper(clone(\@a)), Dumper(\@a), 'ref to duplicated refs';
 
     # correctly cloned?
 

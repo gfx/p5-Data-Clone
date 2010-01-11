@@ -1,4 +1,5 @@
 #define PERL_NO_GET_CONTEXT
+#define NO_XSLOCKS /* for exceptions */
 #include <EXTERN.h>
 #include <perl.h>
 #include <XSUB.h>
@@ -9,8 +10,13 @@
 
 #define REINTERPRET_CAST(T, value) ((T)value)
 
+#define PTR2STR(ptr) REINTERPRET_CAST(const char*, (ptr))
+
 #define MY_CXT_KEY "Data::Clone::_guts" XS_VERSION
 typedef struct {
+    I32 depth;
+    HV* seen;
+    HV* lock;
     GV* my_clone;
 } my_cxt_t;
 START_MY_CXT
@@ -103,7 +109,7 @@ rv_clone(pTHX_ SV* const cloning, HV* const seen) {
     may_be_circular = (SvREFCNT(sv) > 1);
 
     if(may_be_circular){
-        SV** const svp = hv_fetch(seen, REINTERPRET_CAST(const char*, sv), sizeof(sv), FALSE);
+        SV** const svp = hv_fetch(seen, PTR2STR(sv), sizeof(sv), FALSE);
         if(svp){
             proto = *svp;
             goto finish;
@@ -113,37 +119,37 @@ rv_clone(pTHX_ SV* const cloning, HV* const seen) {
     if(SvOBJECT(sv)){
         dMY_CXT;
         GV* const method = find_method_pvn(aTHX_ SvSTASH(sv), STR_WITH_LEN("clone"));
-        if(!method){ /* no clonable */
+
+        if(!method){ /* not a clonable object */
             proto = sv;
             goto finish;
         }
 
         /* has custom clone() method */
-        if(GvCV(method) != GvCV(MY_CXT.my_clone)){
-            CV* entity;
+        if(GvCV(method) != GvCV(MY_CXT.my_clone)
+            && !hv_exists(MY_CXT.lock, PTR2STR(sv), sizeof(sv))){
             dSP;
 
             ENTER;
             SAVETMPS;
 
-            /* temporary *clone = \&Data::Clone::clone to prevent clone() from
-               recursive calls */
-
-            entity = GvCV(method);
-            SAVESPTR(GvCV(method));
-            GvCV(method) = GvCV(MY_CXT.my_clone);
+            /* lock the referent to avoid recursion */
+            hv_store(MY_CXT.lock, PTR2STR(sv), sizeof(sv), &PL_sv_undef, 0U);
 
             PUSHMARK(SP);
             XPUSHs(cloning);
             PUTBACK;
 
-            call_sv((SV*)entity, G_SCALAR);
+            call_sv((SV*)method, G_SCALAR);
 
             SPAGAIN;
             cloned = POPs;
             PUTBACK;
 
             SvREFCNT_inc_simple_void_NN(cloned);
+
+            /* unlock the referent */
+            hv_delete(MY_CXT.lock, PTR2STR(sv), sizeof(sv), G_DISCARD);
 
             FREETMPS;
             LEAVE;
@@ -155,14 +161,14 @@ rv_clone(pTHX_ SV* const cloning, HV* const seen) {
     if(SvTYPE(sv) == SVt_PVAV){
         proto = (SV*)newAV();
         if(may_be_circular){
-            (void)hv_store(seen, REINTERPRET_CAST(const char*, sv), sizeof(sv), proto, 0U);
+            (void)hv_store(seen, PTR2STR(sv), sizeof(sv), proto, 0U);
         }
         av_clone_to(aTHX_ (AV*)sv, (AV*)proto, seen);
     }
     else if(SvTYPE(sv) == SVt_PVHV){
         proto = (SV*)newHV();
         if(may_be_circular){
-            (void)hv_store(seen, REINTERPRET_CAST(const char*, sv), sizeof(sv), proto, 0U);
+            (void)hv_store(seen, PTR2STR(sv), sizeof(sv), proto, 0U);
         }
         hv_clone_to(aTHX_ (HV*)sv, (HV*)proto, seen);
     }
@@ -188,6 +194,9 @@ PROTOTYPES: DISABLE
 BOOT:
 {
     MY_CXT_INIT;
+    MY_CXT.depth    = 0;
+    MY_CXT.seen     = newHV();
+    MY_CXT.lock     = newHV();
     MY_CXT.my_clone = CvGV(get_cv("Data::Clone::clone", GV_ADD));
 }
 
@@ -198,6 +207,9 @@ CLONE(...)
 CODE:
 {
     MY_CXT_CLONE;
+    MY_CXT.depth    = 0;
+    MY_CXT.seen     = newHV();
+    MY_CXT.lock     = newHV();
     MY_CXT.my_clone = CvGV(get_cv("Data::Clone::clone", GV_ADD));
     PERL_UNUSED_VAR(items);
 }
@@ -208,11 +220,34 @@ void
 clone(SV* sv)
 CODE:
 {
-    dXSTARG;
-    HV* const seen = newHV();
-    sv_2mortal((SV*)seen);
+    dMY_CXT;
+    dXCPT;
 
-    ST(0) = sv_clone_to(aTHX_ sv, TARG, seen);
+    MY_CXT.depth++;
+    if(MY_CXT.depth > 255){
+        if(ckWARN(WARN_RECURSION)){
+            Perl_warner(aTHX_ packWARN(WARN_RECURSION),
+                "Deep recursion on clone()");
+        }
+    }
+    else if(MY_CXT.depth < 0) {
+        Perl_croak(aTHX_ "Depth overflow on clone()");
+    }
+
+    XCPT_TRY_START {
+        dXSTARG;
+        ST(0) = sv_clone_to(aTHX_ sv, TARG, MY_CXT.seen);
+    } XCPT_TRY_END
+
+    if(--MY_CXT.depth == 0){
+        hv_undef(MY_CXT.seen);
+        hv_undef(MY_CXT.lock);
+    }
+
+    XCPT_CATCH {
+        XCPT_RETHROW;
+    }
+
     XSRETURN(1);
     PERL_UNUSED_VAR(ix);
 }

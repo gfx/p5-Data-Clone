@@ -55,12 +55,34 @@ for(1 .. 2){ # do it twice to test TARG
     is $o->{foo}, 10, 'clonable';
     is_deeply $c, { foo => 11, bar => 42 }, 'custom clone()';
 
-    $o = MyCustomClonable->new(foo => MyClonable->new(bar => 42));
+    $o = MyClonable->new(
+        aaa => MyCustomClonable->new(value => 100),
+        bbb => MyCustomClonable->new(value => 200),
+    );
     $c = clone($o);
 
-    $c->{foo}{bar}++;
-    is $o->{foo}{bar}, 42, 'clone() is reentrant';
-    is $c->{foo}{bar}, 43;
+    $c->{aaa}{value}++;
+    $c->{bbb}{value}++;
+
+    is $o->{aaa}{value}, 100, 'clone() is reentrant';
+    is $c->{aaa}{value}, 101;
+    is $c->{aaa}{bar},    42;
+
+    is $o->{bbb}{value}, 200, 'clone() is reentrant';
+    is $c->{bbb}{value}, 201;
+    is $c->{bbb}{bar},    42;
+
+    $o = MyCustomClonable->new();
+    $o->{ccc} = MyCustomClonable->new(value => 300);
+    $o->{ddd} = $o->{ccc};
+
+    $c = clone($o);
+    $c->{ccc}{value}++;
+    $c->{ddd}{value}++;
+
+    is $o->{ccc}{value}, 300;
+    is $c->{ccc}{value}, 302;
+    is $c->{ccc}{bar},   42;
 }
 
 done_testing;
