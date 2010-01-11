@@ -199,7 +199,7 @@ CODE:
 {
     MY_CXT_CLONE;
     MY_CXT.my_clone = CvGV(get_cv("Data::Clone::clone", GV_ADD));
-    PERL_UNUSED_VAR(items)
+    PERL_UNUSED_VAR(items);
 }
 
 #endif
