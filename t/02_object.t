@@ -3,11 +3,8 @@
 use strict;
 use warnings FATAL => 'all';
 use Test::More;
-use Data::Dumper;
 
 use Data::Clone;
-
-$Data::Dumper::Indent = 0;
 
 {
     package MyBase;
@@ -35,7 +32,8 @@ $Data::Dumper::Indent = 0;
     }
 }
 
-for(1 .. 2){ # do it twice
+for(1 .. 2){ # do it twice to test TARG
+
     my $o = MyNoclonable->new(foo => 10);
     my $c = clone($o);
 
@@ -55,6 +53,13 @@ for(1 .. 2){ # do it twice
     $c->{foo}++;
     is $o->{foo}, 10, 'clonable';
     is_deeply $c, { foo => 11, bar => 42 }, 'custom clone()';
+
+    $o = MyCustomClonable->new(foo => MyClonable->new(bar => 42));
+    $c = clone($o);
+
+    $c->{foo}{bar}++;
+    is $o->{foo}{bar}, 42, 'clone() is reentrant';
+    is $c->{foo}{bar}, 43;
 }
 
 done_testing;
