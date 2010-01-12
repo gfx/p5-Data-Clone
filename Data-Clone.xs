@@ -8,6 +8,10 @@
 
 #include "xs_assert.h"
 
+#ifndef get_cvs
+#define get_cvs(s, flags) Perl_get_cvn_flags(aTHX_ STR_WITH_LEN(s), flags)
+#endif
+
 #define REINTERPRET_CAST(T, value) ((T)value)
 
 #define PTR2STR(ptr) REINTERPRET_CAST(const char*, (ptr))
@@ -177,6 +181,14 @@ rv_clone(pTHX_ pMY_CXT_ SV* const cloning) {
     return SvWEAKREF(cloning) ? sv_rvweaken(cloned) : cloned;
 }
 
+static void
+my_cxt_initialize(pTHX_ pMY_CXT) {
+    MY_CXT.depth    = 0;
+    MY_CXT.seen     = newHV();
+    MY_CXT.lock     = newHV();
+    MY_CXT.my_clone = CvGV(get_cvs("Data::Clone::clone", GV_ADD));
+}
+
 MODULE = Data::Clone	PACKAGE = Data::Clone
 
 PROTOTYPES: DISABLE
@@ -184,10 +196,7 @@ PROTOTYPES: DISABLE
 BOOT:
 {
     MY_CXT_INIT;
-    MY_CXT.depth    = 0;
-    MY_CXT.seen     = newHV();
-    MY_CXT.lock     = newHV();
-    MY_CXT.my_clone = CvGV(get_cv("Data::Clone::clone", GV_ADD));
+    my_cxt_initialize(aTHX_ aMY_CXT);
 }
 
 #ifdef USE_ITHREADS
@@ -197,10 +206,7 @@ CLONE(...)
 CODE:
 {
     MY_CXT_CLONE;
-    MY_CXT.depth    = 0;
-    MY_CXT.seen     = newHV();
-    MY_CXT.lock     = newHV();
-    MY_CXT.my_clone = CvGV(get_cv("Data::Clone::clone", GV_ADD));
+    my_cxt_initialize(aTHX_ aMY_CXT);
     PERL_UNUSED_VAR(items);
 }
 
