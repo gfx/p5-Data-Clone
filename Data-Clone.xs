@@ -202,14 +202,9 @@ Data_Clone_sv_clone(pTHX_ SV* const sv) {
     dXCPT;
 
     MY_CXT.depth++;
-    if(MY_CXT.depth > 255){
-        if(ckWARN(WARN_RECURSION)){
-            Perl_warner(aTHX_ packWARN(WARN_RECURSION),
-                "Deep recursion on clone()");
-        }
-        if(MY_CXT.depth == U32_MAX){
-            Perl_croak(aTHX_ "Depth overflow on clone()");
-        }
+
+    if(MY_CXT.depth == U32_MAX){
+        Perl_croak(aTHX_ "Depth overflow on clone()");
     }
 
     XCPT_TRY_START {
