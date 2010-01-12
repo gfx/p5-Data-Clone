@@ -13,7 +13,6 @@ use_ppport 3.19;
 cc_warnings;
 
 requires    'parent';
-requires_xs 'XS::Assert';
 
 test_requires 'Test::More'     => 0.88; # done_testing()
 test_requires 'Test::Requires' => 0.03;

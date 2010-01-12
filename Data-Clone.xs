@@ -5,7 +5,6 @@
 #include <XSUB.h>
 
 #include "ppport.h"
-#include "xs_assert.h"
 
 #include "data_clone.h"
 
@@ -31,7 +30,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning);
 
 static SV*
 clone_sv(pTHX_ pMY_CXT_ SV* const cloning) {
-    assert_not_null(cloning);
+    assert(cloning);
 
     SvGETMAGIC(cloning);
 
@@ -50,8 +49,8 @@ static void
 clone_hv_to(pTHX_ pMY_CXT_ HV* const cloning, HV* const cloned) {
     HE* iter;
 
-    assert_sv_is_hv((SV*)cloning);
-    assert_sv_is_hv((SV*)cloned);
+    assert(cloning);
+    assert(cloning);
 
     hv_iterinit(cloning);
     while((iter = hv_iternext(cloning))){
@@ -65,8 +64,8 @@ static void
 clone_av_to(pTHX_ pMY_CXT_ AV* const cloning, AV* const cloned) {
     I32 last, i;
 
-    assert_sv_is_av((SV*)cloning);
-    assert_sv_is_av((SV*)cloned);
+    assert(cloning);
+    assert(cloned);
 
     last = av_len(cloning);
     av_extend(cloned, last);
@@ -116,7 +115,8 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
     SV*  proto;
     SV*  cloned;
 
-    assert_sv_rok(cloning);
+    assert(cloning);
+    assert(SvROK(cloning));
 
     sv = SvRV(cloning);
     may_be_circular = (SvREFCNT(sv) > 1 || sv_has_backrefs(aTHX_ sv) );
