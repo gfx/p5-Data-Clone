@@ -14,7 +14,8 @@ cc_warnings;
 
 requires_xs 'XS::Assert';
 
-test_requires 'Test::More' => 0.88; # done_testing()
+test_requires 'Test::More'     => 0.88; # done_testing()
+test_requires 'Test::Requires' => 0.03;
 
 tests 't/*.t t/*/*.t';
 author_tests 'xt';
