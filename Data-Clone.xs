@@ -15,7 +15,7 @@
 
 #define REINTERPRET_CAST(T, value) ((T)value)
 
-#define PTR2STR(ptr) REINTERPRET_CAST(const char*, (ptr))
+#define PTR2STR(ptr) REINTERPRET_CAST(const char*, (&ptr))
 
 #define MY_CXT_KEY "Data::Clone::_guts" XS_VERSION
 typedef struct {
@@ -146,9 +146,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
             SAVETMPS;
 
             /* lock the referent to avoid recursion */
-
-            /* note that MY_CXT.lock will be cleared
-               even if the cloning method croaks. */
+            SAVEDELETE(MY_CXT.lock, savepvn(PTR2STR(sv), sizeof(sv)), sizeof(sv));
             hv_store(MY_CXT.lock, PTR2STR(sv), sizeof(sv), &PL_sv_undef, 0U);
 
             PUSHMARK(SP);
@@ -162,9 +160,6 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
             PUTBACK;
 
             SvREFCNT_inc_simple_void_NN(cloned);
-
-            /* unlock the referent */
-            hv_delete(MY_CXT.lock, PTR2STR(sv), sizeof(sv), G_DISCARD);
 
             FREETMPS;
             LEAVE;

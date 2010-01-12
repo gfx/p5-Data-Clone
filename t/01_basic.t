@@ -63,14 +63,14 @@ for(1 .. 2){ # do it twice to test internal data
 
     # correctly cloned?
 
-    %h = (foo => 10);
+    %h = (foo => 10, bar => 10);
 
     my $cloned = clone(\%h);
     $cloned->{foo}++;
 
     cmp_ok $cloned, '!=', \%h, 'different entity';
-    is_deeply \%h,     {foo => 10}, 'deeply cloned';
-    is_deeply $cloned, {foo => 11};
+    is_deeply \%h,     {foo => 10, bar => 10}, 'deeply cloned';
+    is_deeply $cloned, {foo => 11, bar => 10};
 }
 
 done_testing;
