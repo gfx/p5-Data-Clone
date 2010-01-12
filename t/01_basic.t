@@ -8,21 +8,35 @@ use Data::Dumper;
 
 use Data::Clone;
 
+use Tie::Hash;
+use Tie::Array;
+
 $Data::Dumper::Indent = 0;
 
 for(1 .. 2){ # do it twice to test TARG
 
     foreach my $data(
         "foo",
-         3.14,
-         1 != 1,
-         *STDOUT,
-         ["foo", "bar", undef, 42],
-         [qr/foo/, qr/bar/],
-         [\*STDOUT, \*STDOUT],
-         { key => [ 'value', \&ok ] },
-         { foo => { bar => { baz => 42 } } },
-         bless({foo => "bar"}, 'Foo'),
+        3.14,
+        1 != 1,
+        *STDOUT,
+        ["foo", "bar", undef, 42],
+        [qr/foo/, qr/bar/],
+        [\*STDOUT, \*STDOUT],
+        { key => [ 'value', \&ok ] },
+        { foo => { bar => { baz => 42 } } },
+        bless({foo => "bar"}, 'Foo'),
+
+        do{
+            my $o = tie my(%h), 'Tie::StdHash';
+            %{$o} = (foo => 'bar');
+            \%h;
+        },
+        do{
+            my $o = tie my(@a), 'Tie::StdArray';
+            @{$o} = ('foo', 42);
+            \@a;
+        },
     ){
         is Dumper(clone($data)),  Dumper($data),  'data';
         is Dumper(clone(\$data)), Dumper(\$data), 'data ref';
