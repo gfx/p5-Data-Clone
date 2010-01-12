@@ -147,7 +147,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
 
             /* lock the referent to avoid recursion */
             SAVEDELETE(MY_CXT.lock, savepvn(PTR2STR(sv), sizeof(sv)), sizeof(sv));
-            hv_store(MY_CXT.lock, PTR2STR(sv), sizeof(sv), &PL_sv_undef, 0U);
+            (void)hv_store(MY_CXT.lock, PTR2STR(sv), sizeof(sv), &PL_sv_undef, 0U);
 
             PUSHMARK(SP);
             XPUSHs(cloning);
