@@ -18,7 +18,7 @@
 
 #define MY_CXT_KEY "Data::Clone::_guts" XS_VERSION
 typedef struct {
-    I32 depth;
+    U32 depth;
     HV* seen;
     HV* lock;
     GV* my_clone;
@@ -225,9 +225,9 @@ CODE:
             Perl_warner(aTHX_ packWARN(WARN_RECURSION),
                 "Deep recursion on clone()");
         }
-    }
-    else if(MY_CXT.depth < 0) {
-        Perl_croak(aTHX_ "Depth overflow on clone()");
+        if(MY_CXT.depth == U32_MAX){
+            Perl_croak(aTHX_ "Depth overflow on clone()");
+        }
     }
 
     XCPT_TRY_START {
