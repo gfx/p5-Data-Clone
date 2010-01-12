@@ -16,3 +16,6 @@ __DATA__
 Goro Fuji (gfx)
 gfuji(at)cpan.org
 Data::Clone
+gfx
+behaviour
+clonable
