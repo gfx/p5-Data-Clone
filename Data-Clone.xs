@@ -81,13 +81,26 @@ av_clone_to(pTHX_ pMY_CXT_ AV* const cloning, AV* const cloned) {
 
 
 static GV*
-find_method_pvn(pTHX_ HV* const stash, const char* const name, I32 const namelen){
+find_method_pvn(pTHX_ HV* const stash, const char* const name, I32 const namelen) {
     GV** const gvp = (GV**)hv_fetch(stash, name, namelen, FALSE);
     if(gvp && isGV(*gvp) && GvCV(*gvp)){ /* shortcut */
         return *gvp;
     }
 
     return gv_fetchmeth_autoload(stash, name, namelen, 0);
+}
+
+static int
+sv_has_backrefs(pTHX_ SV* const sv) {
+    if(SvRMAGICAL(sv) && mg_find(sv, PERL_MAGIC_backref)) {
+        return TRUE;
+    }
+#ifdef HvAUX
+    else if(SvTYPE(sv) == SVt_PVHV){
+        return SvOOK(sv) && HvAUX((HV*)sv)->xhv_backreferences != NULL;
+    }
+#endif
+    return FALSE;
 }
 
 static SV*
@@ -100,7 +113,7 @@ rv_clone(pTHX_ pMY_CXT_ SV* const cloning) {
     assert_sv_rok(cloning);
 
     sv = SvRV(cloning);
-    may_be_circular = (SvREFCNT(sv) > 1);
+    may_be_circular = (SvREFCNT(sv) > 1 || sv_has_backrefs(aTHX_ sv) );
 
     if(may_be_circular){
         SV** const svp = hv_fetch(MY_CXT.seen, PTR2STR(sv), sizeof(sv), FALSE);
