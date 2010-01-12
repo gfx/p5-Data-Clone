@@ -25,31 +25,23 @@ static SV*
 rv_clone(pTHX_ SV* const cloning, HV* const seen);
 
 static SV*
-sv_clone_to(pTHX_ SV* const cloning, SV* const cloned, HV* const seen) {
+sv_clone(pTHX_ SV* const cloning, HV* const seen) {
+    SV* cloned;
+
     assert_not_null(cloning);
-    assert_not_null(cloned);
-    assert(cloning != cloned);
+    assert_sv_is_hv((SV*)seen);
 
     SvGETMAGIC(cloning);
 
     if(SvROK(cloning)){
-        SV* const sv = rv_clone(aTHX_ cloning, seen);
-        sv_setsv_flags(cloned, sv, SV_NOSTEAL);
-        SvREFCNT_dec(sv);
+        cloned = rv_clone(aTHX_ cloning, seen);
     }
     else{
+        cloned = newSV(0);
         /* no need to set SV_GMAGIC */
         sv_setsv_flags(cloned, cloning, SV_NOSTEAL);
     }
     return cloned;
-}
-
-static SV*
-sv_clone(pTHX_ SV* const cloning, HV* const seen) {
-    assert_not_null(cloning);
-    assert_sv_is_hv((SV*)seen);
-
-    return sv_clone_to(aTHX_ cloning, newSV(0), seen);
 }
 
 static void
@@ -159,22 +151,23 @@ rv_clone(pTHX_ SV* const cloning, HV* const seen) {
     }
 
     if(SvTYPE(sv) == SVt_PVAV){
-        proto = (SV*)newAV();
+        proto = sv_2mortal((SV*)newAV());
         if(may_be_circular){
             (void)hv_store(seen, PTR2STR(sv), sizeof(sv), proto, 0U);
+            SvREFCNT_inc_simple_void_NN(proto);
         }
         av_clone_to(aTHX_ (AV*)sv, (AV*)proto, seen);
     }
     else if(SvTYPE(sv) == SVt_PVHV){
-        proto = (SV*)newHV();
+        proto = sv_2mortal((SV*)newHV());
         if(may_be_circular){
             (void)hv_store(seen, PTR2STR(sv), sizeof(sv), proto, 0U);
+            SvREFCNT_inc_simple_void_NN(proto);
         }
         hv_clone_to(aTHX_ (HV*)sv, (HV*)proto, seen);
     }
     else {
         proto = sv; /* do nothing */
-        SvREFCNT_inc_simple_void_NN(proto);
     }
 
     finish:
@@ -235,8 +228,7 @@ CODE:
     }
 
     XCPT_TRY_START {
-        dXSTARG;
-        ST(0) = sv_clone_to(aTHX_ sv, TARG, MY_CXT.seen);
+        ST(0) = sv_2mortal(sv_clone(aTHX_ sv, MY_CXT.seen));
     } XCPT_TRY_END
 
     if(--MY_CXT.depth == 0){
