@@ -224,7 +224,7 @@ Data_Clone_sv_clone(pTHX_ SV* const sv) {
     XCPT_CATCH {
         XCPT_RETHROW;
     }
-    return retval; /* not reached */
+    return retval;
 }
 
 static void
