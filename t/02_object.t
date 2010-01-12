@@ -31,6 +31,13 @@ use Data::Clone;
         $cloned->{bar} = 42;
         return $cloned;
     }
+
+    package FatalClonable;
+    our @ISA = qw(MyBase);
+
+    sub clone {
+        die 'FATAL';
+    }
 }
 
 for(1 .. 2){ # do it twice to test TARG
@@ -83,6 +90,20 @@ for(1 .. 2){ # do it twice to test TARG
     is $o->{ccc}{value}, 300;
     is $c->{ccc}{value}, 302;
     is $c->{ccc}{bar},   42;
+
+    $o = FatalClonable->new(foo => 10);
+    eval{
+        clone($o);
+    };
+    like $@, qr/^FATAL \b/xms, 'FATAL in clone()';
+    is $o->{foo}, 10;
+
+    $o = MyCustomClonable->new(value => FatalClonable->new(foo => 10));
+    eval{
+        clone($o);
+    };
+    like $@, qr/^FATAL \b/xms, 'FATAL in clone()';
+    is $o->{value}{foo}, 10;
 }
 
 done_testing;

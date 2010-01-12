@@ -31,6 +31,15 @@ use Data::Clone;
         $cloned->{bar} = 42;
         return $cloned;
     }
+
+    package FatalClonable;
+    use Data::Clone qw(data_clone);
+    our @ISA = qw(MyBase);
+
+    sub clone {
+        my $cloned = data_clone(@_);
+        die 'FATAL';
+    }
 }
 
 no_leaks_ok {
@@ -57,5 +66,10 @@ no_leaks_ok {
     my $o = MyCustomClonable->new(foo => MyClonable->new(bar => 42));
     my $c = clone($o);
 };
+
+no_leaks_ok {
+    my $o = FatalClonable->new(value => MyClonable->new(foo => 50));
+    eval{ clone($o) };
+} 'fatal in clone()';
 
 done_testing;
