@@ -31,21 +31,19 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning);
 
 static SV*
 clone_sv(pTHX_ pMY_CXT_ SV* const cloning) {
-    SV* cloned;
-
     assert_not_null(cloning);
 
     SvGETMAGIC(cloning);
 
     if(SvROK(cloning)){
-        cloned = clone_rv(aTHX_ aMY_CXT_ cloning);
+        return clone_rv(aTHX_ aMY_CXT_ cloning);
     }
     else{
-        cloned = newSV(0);
+        SV* const cloned = newSV(0);
         /* no need to set SV_GMAGIC */
         sv_setsv_flags(cloned, cloning, SV_NOSTEAL);
+        return cloned;
     }
-    return cloned;
 }
 
 static void
@@ -57,8 +55,9 @@ clone_hv_to(pTHX_ pMY_CXT_ HV* const cloning, HV* const cloned) {
 
     hv_iterinit(cloning);
     while((iter = hv_iternext(cloning))){
-        SV* const sv = clone_sv(aTHX_ aMY_CXT_ hv_iterval(cloning, iter));
-        (void)hv_store_ent(cloned, hv_iterkeysv(iter), sv, 0U);
+        SV* const key = hv_iterkeysv(iter);
+        SV* const val = clone_sv(aTHX_ aMY_CXT_ hv_iterval(cloning, iter));
+        (void)hv_store_ent(cloned, key, val, 0U);
     }
 }
 
@@ -102,6 +101,12 @@ sv_has_backrefs(pTHX_ SV* const sv) {
     }
 #endif
     return FALSE;
+}
+
+static void
+store_to_seen(pTHX_ pMY_CXT_ SV* const sv, SV* const proto) {
+    (void)hv_store(MY_CXT.seen, PTR2STR(sv), sizeof(sv), proto, 0U);
+    SvREFCNT_inc_simple_void_NN(proto);
 }
 
 static SV*
@@ -171,16 +176,14 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
     if(SvTYPE(sv) == SVt_PVAV){
         proto = sv_2mortal((SV*)newAV());
         if(may_be_circular){
-            (void)hv_store(MY_CXT.seen, PTR2STR(sv), sizeof(sv), proto, 0U);
-            SvREFCNT_inc_simple_void_NN(proto);
+            store_to_seen(aTHX_ aMY_CXT_ sv, proto);
         }
         clone_av_to(aTHX_ aMY_CXT_ (AV*)sv, (AV*)proto);
     }
     else if(SvTYPE(sv) == SVt_PVHV){
         proto = sv_2mortal((SV*)newHV());
         if(may_be_circular){
-            (void)hv_store(MY_CXT.seen, PTR2STR(sv), sizeof(sv), proto, 0U);
-            SvREFCNT_inc_simple_void_NN(proto);
+            store_to_seen(aTHX_ aMY_CXT_ sv, proto);
         }
         clone_hv_to(aTHX_ aMY_CXT_ (HV*)sv, (HV*)proto);
     }
@@ -204,9 +207,7 @@ Data_Clone_sv_clone(pTHX_ SV* const sv) {
     dMY_CXT;
     dXCPT;
 
-    MY_CXT.depth++;
-
-    if(MY_CXT.depth == U32_MAX){
+    if(++MY_CXT.depth == U32_MAX){
         Perl_croak(aTHX_ "Depth overflow on clone()");
     }
 
