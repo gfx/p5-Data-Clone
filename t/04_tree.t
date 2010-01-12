@@ -9,7 +9,8 @@ use Data::Clone;
 
 use Scalar::Util qw(isweak weaken);
 use Data::Dumper;
-$Data::Dumper::Indent = 0;
+$Data::Dumper::Indent   = 0;
+$Data::Dumper::Sortkeys = 1;
 
 # hash tree
 

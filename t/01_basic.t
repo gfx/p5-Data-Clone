@@ -11,7 +11,8 @@ use Data::Clone;
 use Tie::Hash;
 use Tie::Array;
 
-$Data::Dumper::Indent = 0;
+$Data::Dumper::Indent   = 0;
+$Data::Dumper::Sortkeys = 1;
 
 ok defined(&clone), 'clone() is exported by default';
 ok!defined(&data_clone), 'data_clone() is not exported by default';

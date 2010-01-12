@@ -9,7 +9,7 @@
 #include "data_clone.h"
 
 #ifndef get_cvs
-#define get_cvs(s, flags) Perl_get_cvn_flags(aTHX_ STR_WITH_LEN(s), flags)
+#define get_cvs(s, flags) get_cv((s), (flags))
 #endif
 
 #define REINTERPRET_CAST(T, value) ((T)value)
