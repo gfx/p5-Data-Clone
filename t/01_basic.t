@@ -63,14 +63,25 @@ for(1 .. 2){ # do it twice to test internal data
 
     # correctly cloned?
 
-    %h = (foo => 10, bar => 10);
+    $s = 99;
+    %h = (foo => 10, bar => 10, baz => [10], qux => \$s);
 
     my $cloned = clone(\%h);
     $cloned->{foo}++;
+    $cloned->{baz}[0]++;
 
     cmp_ok $cloned, '!=', \%h, 'different entity';
-    is_deeply \%h,     {foo => 10, bar => 10}, 'deeply cloned';
-    is_deeply $cloned, {foo => 11, bar => 10};
+
+    is Dumper($cloned), Dumper({foo => 11, bar => 10, baz => [11], qux => \$s}),
+        'deeply copied';
+
+    is Dumper(\%h), Dumper({foo => 10, bar => 10, baz => [10], qux => \$s}),
+        'the original is not touched';
+
+    $s++;
+
+    is ${$h{qux}},        100;
+    is ${$cloned->{qux}}, 100, 'scalar ref is not copied deeply';
 }
 
 done_testing;
