@@ -5,8 +5,9 @@
 #include <XSUB.h>
 
 #include "ppport.h"
-
 #include "xs_assert.h"
+
+#include "data_clone.h"
 
 #ifndef get_cvs
 #define get_cvs(s, flags) Perl_get_cvn_flags(aTHX_ STR_WITH_LEN(s), flags)
@@ -194,6 +195,38 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
     return SvWEAKREF(cloning) ? sv_rvweaken(cloned) : cloned;
 }
 
+SV*
+Data_Clone_sv_clone(pTHX_ SV* const sv) {
+    SV* VOL retval = NULL;
+    dMY_CXT;
+    dXCPT;
+
+    MY_CXT.depth++;
+    if(MY_CXT.depth > 255){
+        if(ckWARN(WARN_RECURSION)){
+            Perl_warner(aTHX_ packWARN(WARN_RECURSION),
+                "Deep recursion on clone()");
+        }
+        if(MY_CXT.depth == U32_MAX){
+            Perl_croak(aTHX_ "Depth overflow on clone()");
+        }
+    }
+
+    XCPT_TRY_START {
+        retval = sv_2mortal(clone_sv(aTHX_ aMY_CXT_ sv));
+    } XCPT_TRY_END
+
+    if(--MY_CXT.depth == 0){
+        hv_undef(MY_CXT.seen);
+        hv_undef(MY_CXT.lock);
+    }
+
+    XCPT_CATCH {
+        XCPT_RETHROW;
+    }
+    return retval; /* not reached */
+}
+
 static void
 my_cxt_initialize(pTHX_ pMY_CXT) {
     MY_CXT.depth    = 0;
@@ -229,36 +262,14 @@ void
 clone(SV* sv)
 CODE:
 {
-    dMY_CXT;
-    dXCPT;
-
-    MY_CXT.depth++;
-    if(MY_CXT.depth > 255){
-        if(ckWARN(WARN_RECURSION)){
-            Perl_warner(aTHX_ packWARN(WARN_RECURSION),
-                "Deep recursion on clone()");
-        }
-        if(MY_CXT.depth == U32_MAX){
-            Perl_croak(aTHX_ "Depth overflow on clone()");
-        }
-    }
-
-    XCPT_TRY_START {
-        ST(0) = sv_2mortal(clone_sv(aTHX_ aMY_CXT_ sv));
-    } XCPT_TRY_END
-
-    if(--MY_CXT.depth == 0){
-        hv_undef(MY_CXT.seen);
-        hv_undef(MY_CXT.lock);
-    }
-
-    XCPT_CATCH {
-        XCPT_RETHROW;
-    }
-
+    ST(0) = sv_clone(sv);
     XSRETURN(1);
-    PERL_UNUSED_VAR(ix);
 }
-ALIAS:
-    clone      = 0
-    data_clone = 1
+
+void
+data_clone(SV* sv)
+CODE:
+{
+    ST(0) = sv_clone(sv);
+    XSRETURN(1);
+}
