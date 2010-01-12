@@ -68,7 +68,7 @@ data cloning.
 
 =head3 Scalar references
 
-Scalar references are B<not> copied deeply. They are copied in surface
+Scalar references are B<not> copied deeply. They are copied on surface
 because it is typically used to refer to something special, namely
 global variables or magical variables.
 
@@ -82,7 +82,7 @@ Hash references are copied deeply.
 
 =head3 Glob, IO and Code references
 
-These references are B<not> copied deeply. They are copied in surface.
+These references are B<not> copied deeply. They are copied on surface.
 
 =head3 Blessed references (objects)
 
