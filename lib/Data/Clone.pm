@@ -9,7 +9,8 @@ use XSLoader;
 XSLoader::load(__PACKAGE__, $VERSION);
 
 use parent qw(Exporter);
-our @EXPORT = qw(clone data_clone);
+our @EXPORT    = qw(clone);
+our @EXPORT_OK = qw(data_clone);
 
 1;
 __END__

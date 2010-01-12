@@ -7,7 +7,7 @@ use Test::More;
 
 use Data::Clone;
 
-for(1 .. 2){ # do it twice to test TARG
+for(1 .. 2){ # do it twice to test internal data
 
     my $s = 'foobar';
     my @a = (\substr $s, 1, 2);

@@ -40,7 +40,7 @@ use Data::Clone;
     }
 }
 
-for(1 .. 2){ # do it twice to test TARG
+for(1 .. 2){ # do it twice to test internal data
 
     my $o = MyNoclonable->new(foo => 10);
     my $c = clone($o);

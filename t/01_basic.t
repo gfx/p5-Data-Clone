@@ -13,7 +13,10 @@ use Tie::Array;
 
 $Data::Dumper::Indent = 0;
 
-for(1 .. 2){ # do it twice to test TARG
+ok defined(&clone), 'clone() is exported by default';
+ok!defined(&data_clone), 'data_clone() is not exported by default';
+
+for(1 .. 2){ # do it twice to test internal data
 
     foreach my $data(
         "foo",
