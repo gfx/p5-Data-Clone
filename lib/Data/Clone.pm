@@ -16,7 +16,7 @@ __END__
 
 =head1 NAME
 
-Data::Clone - Extensible, flexible, high-performance data cloning
+Data::Clone - Polymorphic data cloning
 
 =head1 VERSION
 
@@ -27,7 +27,7 @@ This document describes Data::Clone version 0.001.
     # as a function
     use Data::Clone;
 
-    my $data   = YAML::Load("foo.yml");
+    my $data   = YAML::Load("foo.yml"); # complex data structure
     my $cloned = clone($data);
 
     # makes Foo clonable
@@ -56,11 +56,12 @@ This document describes Data::Clone version 0.001.
 
 =head1 DESCRIPTION
 
-Data::Clone does data cloning, i.e. copies things recursively. This is
+C<Data::Clone> does data cloning, i.e. copies things recursively. This is
 smart so that it works with not only non-blessed references, but also with
 blessed references (i.e. objects). When C<clone()> finds an object, it
 calls a C<clone> method of the object if the object has a C<clone>, otherwise
-it makes a surface copy of the object.
+it makes a surface copy of the object. That is, this module does polymorphic
+data cloning.
 
 =head2 Cloning policy
 
@@ -84,11 +85,13 @@ These references are B<not> copied deeply. They are copied in surface.
 
 =head3 Blessed references (objects)
 
-Blessed references are B<not> copied deeply by default. They will be copied
-deeply when Data::Clone knows they are clonable, i.e. they have a C<clone>
+Blessed references are B<not> copied deeply by default, because objects might
+have external resource which C<Data::Clone> could not know. They will be copied
+deeply only if Data::Clone knows they are clonable, i.e. they have a C<clone>
 method.
 
-If you want an object clonable, you can use the C<clone()> function as a method:
+If you want to make an object clonable, you can use the C<clone()> function
+as a method:
 
     package Your::Class;
     use Data::Clone;
@@ -112,15 +115,36 @@ Or you can import C<data_clone()> function to define your custom clone method:
 Of course, you can use C<Clone::clone()>, C<Storable::dclone()>, and/or
 anything you want.
 
+=head2 Comparison to other cloning modules
+
+There are modules which does data cloning.
+
+C<Storable> is a standard module which can clone data with C<dclone()>.
+It has different cloning policy from C<Data::Clone>. By default it tries
+to make a deep copy of all the data including blessed references, but you
+can change its behaviour with specific hook methods.
+
+C<Clone> is a well-known cloning module, but it does not polymorphic
+cloning. This makes a deep copy of data regardless of its types. Moreover, there
+is no way to change its behaviour, so this is useful only for data which
+link to no external resources.
+
+C<Data::Clone> makes a deep copy of data only if it knows that the data are
+clonable. You can change its behaviour simply by defining C<clone> methods.
+
 =head1 INTERFACE
 
 =head2 Exported functions
 
 =head3 B<< clone(Scalar) >>
 
+Returns a copy of I<Scalar>.
+
 =head2 Exportable functions
 
 =head3 B<< data_clone(Salar) >>
+
+Returns a copy of I<Scalar>.
 
 The same as C<clone()>. Provided for custom clone methods.
 
@@ -136,7 +160,9 @@ Please report any bugs or feature requests to the author.
 
 =head1 SEE ALSO
 
-L<Clone>, C<Storable>
+L<Storable>
+
+L<Clone>
 
 =head1 AUTHOR
 
