@@ -132,6 +132,7 @@ link to no external resources.
 
 C<Data::Clone> makes a deep copy of data only if it knows that the data are
 clonable. You can change its behaviour simply by defining C<clone> methods.
+It also exceeds C<Storable> and C<Clone> in performance.
 
 =head1 INTERFACE
 
