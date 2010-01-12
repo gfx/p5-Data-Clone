@@ -141,6 +141,9 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
             SAVETMPS;
 
             /* lock the referent to avoid recursion */
+
+            /* note that MY_CXT.lock will be cleared
+               even if the cloning method croaks. */
             hv_store(MY_CXT.lock, PTR2STR(sv), sizeof(sv), &PL_sv_undef, 0U);
 
             PUSHMARK(SP);
@@ -162,7 +165,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
             LEAVE;
             return cloned;
         }
-        /* default clone() */
+        /* fall through to the default cloneing routine */
     }
 
     if(SvTYPE(sv) == SVt_PVAV){
