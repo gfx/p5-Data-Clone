@@ -1,8 +1,7 @@
 #!perl -w
 
 use strict;
-use constant HAS_THREADS => eval{ require threads };
-use if !HAS_THREADS, 'Test::More' => (skip_all => 'Testing with threads');
+use Test::Requires qw(threads);
 use Test::More;
 
 use warnings FATAL => 'all';
@@ -37,7 +36,7 @@ use Time::HiRes qw(usleep);
 }
 
 my @threads;
-for(1 .. 5){ # do it twice to test TARG
+for(1 .. 5){
 
     push @threads, threads->create(sub{
         my $o = MyNoclonable->new(foo => 10);
