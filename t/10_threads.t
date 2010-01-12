@@ -1,6 +1,7 @@
 #!perl -w
 
 use strict;
+BEGIN{ eval { require threads } }
 use Test::Requires qw(threads);
 use Test::More;
 
