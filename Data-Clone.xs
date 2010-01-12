@@ -137,7 +137,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
             goto finish;
         }
 
-        /* has custom clone() method */
+        /* has its own clone method */
         if(GvCV(method) != GvCV(MY_CXT.my_clone)
             && !hv_exists(MY_CXT.lock, PTR2STR(sv), sizeof(sv))){
             dSP;
@@ -196,6 +196,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
     return SvWEAKREF(cloning) ? sv_rvweaken(cloned) : cloned;
 }
 
+/* as SV* sv_clone(SV* sv) */
 SV*
 Data_Clone_sv_clone(pTHX_ SV* const sv) {
     SV* VOL retval = NULL;
