@@ -65,14 +65,14 @@ it makes a surface copy of the object. That is, this module does polymorphic
 data cloning.
 
 Although there are several modules on CPAN which can clone data,
-this module has a defferent cloning policy from almost all of them.
+this module has a different cloning policy from almost all of them.
 See L</Cloning policy> and L</Comparison to other cloning modules> for
 details.
 
 =head2 Cloning policy
 
-A cloning policiy is a rule that how a routine clones data. Here is
-the cloning plicy of C<Data::Clone>.
+A cloning policy is a rule that how a routine clones data. Here is
+the cloning policy of C<Data::Clone>.
 
 =head3 Non-reference values
 
@@ -165,6 +165,10 @@ Returns a copy of I<Scalar>.
 Returns a copy of I<Scalar>.
 
 The same as C<clone()>. Provided for custom clone methods.
+
+=head3 B<< is_cloning() >>
+
+Returns true inside the C<clone()> function, false otherwise.
 
 =head1 DEPENDENCIES
 
