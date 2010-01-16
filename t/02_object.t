@@ -89,7 +89,7 @@ for(1 .. 2){ # do it twice to test internal data
 
     is $o->{ccc}{value}, 300;
     is $c->{ccc}{value}, 302;
-    is $c->{ccc}{bar},   42;
+    is $c->{ccc}{bar},   42,  'clone methods in clone()';
 
     $o = FatalClonable->new(foo => 10);
     eval{

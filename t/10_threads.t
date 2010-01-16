@@ -1,8 +1,8 @@
 #!perl -w
 
 use strict;
-BEGIN{ eval { require threads } }
-use Test::Requires qw(threads);
+use constant HAS_THREADS => eval{ require threads };
+use if !HAS_THREADS, 'Test::More', skip_all => 'This test requires threads';
 use Test::More;
 
 use warnings FATAL => 'all';
