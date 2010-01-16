@@ -20,7 +20,7 @@
 typedef struct {
     U32 depth;
     HV* seen;
-    HV* lock;
+    CV* caller_cv;
     GV* my_clone;
 } my_cxt_t;
 START_MY_CXT
@@ -102,6 +102,54 @@ sv_has_backrefs(pTHX_ SV* const sv) {
     return FALSE;
 }
 
+/* my_dopoptosub_at() and caller_cv() are stolen from pp_ctl.c */
+static I32
+my_dopoptosub_at(pTHX_ const PERL_CONTEXT* const cxstk, I32 const startingblock) {
+    I32 i;
+
+    assert(cxstk);
+
+    for (i = startingblock; i >= 0; i--) {
+        const PERL_CONTEXT* const cx = &cxstk[i];
+        if(CxTYPE(cx) == CXt_SUB){
+            break;
+        }
+    }
+    return i;
+}
+
+static CV*
+caller_cv(pTHX) {
+    const PERL_CONTEXT* cx;
+    const PERL_CONTEXT* ccstack = cxstack;
+    const PERL_SI *si           = PL_curstackinfo;
+    I32 cxix                    = my_dopoptosub_at(aTHX_ ccstack, cxstack_ix);
+    I32 count                   = 0;
+
+    for (;;) {
+        /* we may be in a higher stacklevel, so dig down deeper */
+        while (cxix < 0 && si->si_type != PERLSI_MAIN) {
+            si      = si->si_prev;
+            ccstack = si->si_cxstack;
+            cxix = my_dopoptosub_at(aTHX_ ccstack, si->si_cxix);
+        }
+        if (cxix < 0) {
+            return NULL;
+        }
+        /* skip &DB::sub */
+        if (PL_DBsub && GvCV(PL_DBsub) &&
+                ccstack[cxix].blk_sub.cv == GvCV(PL_DBsub))
+            count++;
+        if (!count--)
+            break;
+
+        cxix = my_dopoptosub_at(aTHX_ ccstack, cxix - 1);
+    }
+
+    cx = &ccstack[cxix];
+    return cx->blk_sub.cv;
+}
+
 static void
 store_to_seen(pTHX_ pMY_CXT_ SV* const sv, SV* const proto) {
     (void)hv_store(MY_CXT.seen, PTR2STR(sv), sizeof(sv), proto, 0U);
@@ -114,6 +162,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
     SV*  sv;
     SV*  proto;
     SV*  cloned;
+    //CV* old_cv;
 
     assert(cloning);
     assert(SvROK(cloning));
@@ -139,15 +188,11 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
 
         /* has its own clone method */
         if(GvCV(method) != GvCV(MY_CXT.my_clone)
-            && !hv_exists(MY_CXT.lock, PTR2STR(sv), sizeof(sv))){
+            && GvCV(method) != MY_CXT.caller_cv){
             dSP;
 
             ENTER;
             SAVETMPS;
-
-            /* lock the referent to avoid recursion */
-            SAVEDELETE(MY_CXT.lock, savepvn(PTR2STR(sv), sizeof(sv)), sizeof(sv));
-            (void)hv_store(MY_CXT.lock, PTR2STR(sv), sizeof(sv), &PL_sv_undef, 0U);
 
             PUSHMARK(SP);
             XPUSHs(cloning);
@@ -168,6 +213,10 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
         /* fall through to the default cloneing routine */
     }
 
+    /* XXX: need to save caller_cv, or not? */
+    //old_cv           = MY_CXT.caller_cv;
+    MY_CXT.caller_cv = NULL;
+
     if(SvTYPE(sv) == SVt_PVAV){
         proto = sv_2mortal((SV*)newAV());
         if(may_be_circular){
@@ -186,6 +235,8 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
         proto = sv; /* do nothing */
     }
 
+    //MY_CXT.caller_cv = old_cv;
+
     finish:
     cloned = newRV_inc(proto);
 
@@ -200,6 +251,7 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
 SV*
 Data_Clone_sv_clone(pTHX_ SV* const sv) {
     SV* VOL retval = NULL;
+    CV* VOL old_cv;
     dMY_CXT;
     dXCPT;
 
@@ -207,13 +259,17 @@ Data_Clone_sv_clone(pTHX_ SV* const sv) {
         Perl_croak(aTHX_ "Depth overflow on clone()");
     }
 
+    old_cv = MY_CXT.caller_cv;
+    MY_CXT.caller_cv = caller_cv(aTHX);
+
     XCPT_TRY_START {
         retval = sv_2mortal(clone_sv(aTHX_ aMY_CXT_ sv));
     } XCPT_TRY_END
 
+    MY_CXT.caller_cv = old_cv;
+
     if(--MY_CXT.depth == 0){
         hv_undef(MY_CXT.seen);
-        hv_undef(MY_CXT.lock);
     }
 
     XCPT_CATCH {
@@ -226,11 +282,10 @@ static void
 my_cxt_initialize(pTHX_ pMY_CXT) {
     MY_CXT.depth    = 0;
     MY_CXT.seen     = newHV();
-    MY_CXT.lock     = newHV();
     MY_CXT.my_clone = CvGV(get_cvs("Data::Clone::clone", GV_ADD));
 }
 
-MODULE = Data::Clone	PACKAGE = Data::Clone
+MODULE = Data::Clone        PACKAGE = Data::Clone
 
 PROTOTYPES: DISABLE
 
@@ -268,3 +323,13 @@ CODE:
     ST(0) = sv_clone(sv);
     XSRETURN(1);
 }
+
+bool
+is_cloning()
+CODE:
+{
+    dMY_CXT;
+    RETVAL = (MY_CXT.depth != 0);
+}
+OUTPUT:
+    RETVAL
