@@ -37,6 +37,7 @@ my $c_clone_called;
         $c_clone_called++;
         return $cloned;
     }
+
 }
 
 my $b = B->new(foo => 10);
@@ -56,6 +57,24 @@ for(1 .. 2){
     is $c_clone_called, 1;
 
     is Dumper($c), Dumper(bless { bar => 20 }, 'C');
+
+
+    my @h = ( C->new(a => 1), C->new(a => 2), C->new(a => 3) );
+    $c_clone_called = 0;
+    is Dumper(clone(\@h)),
+       Dumper([ ( C->new(a => 1, c_clone => 1),
+                  C->new(a => 2, c_clone => 1),
+                  C->new(a => 3, c_clone => 1) ) ]);
+    is $c_clone_called, 3;
+
+    my $o = C->new( c => [C->new(foo => 42)], c2 => [C->new(foo => 52)], );
+    $c_clone_called = 0;
+
+    is Dumper(clone($o)),
+       Dumper(C->new( c  => [C->new(foo => 42, c_clone => 1)],
+                      c2 => [C->new(foo => 52, c_clone => 1)], c_clone => 1));
+    is $c_clone_called, 3;
+
 }
 
 done_testing;

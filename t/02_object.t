@@ -63,33 +63,33 @@ for(1 .. 2){ # do it twice to test internal data
     is_deeply $c, { foo => 11, bar => 42 }, 'custom clone()';
 
     $o = MyClonable->new(
-        aaa => MyCustomClonable->new(value => 100),
-        bbb => MyCustomClonable->new(value => 200),
+        aaa => [MyCustomClonable->new(value => 100)],
+        bbb => [MyCustomClonable->new(value => 200)],
     );
     $c = clone($o);
 
-    $c->{aaa}{value}++;
-    $c->{bbb}{value}++;
+    $c->{aaa}[0]{value}++;
+    $c->{bbb}[0]{value}++;
 
-    is $o->{aaa}{value}, 100, 'clone() is reentrant';
-    is $c->{aaa}{value}, 101;
-    is $c->{aaa}{bar},    42;
+    is $o->{aaa}[0]{value}, 100, 'clone() is reentrant';
+    is $c->{aaa}[0]{value}, 101;
+    is $c->{aaa}[0]{bar},    42;
 
-    is $o->{bbb}{value}, 200, 'clone() is reentrant';
-    is $c->{bbb}{value}, 201;
-    is $c->{bbb}{bar},    42;
+    is $o->{bbb}[0]{value}, 200, 'clone() is reentrant';
+    is $c->{bbb}[0]{value}, 201;
+    is $c->{bbb}[0]{bar},    42;
 
     $o = MyCustomClonable->new();
-    $o->{ccc} = MyCustomClonable->new(value => 300);
+    $o->{ccc} = [MyCustomClonable->new(value => 300)];
     $o->{ddd} = $o->{ccc};
 
     $c = clone($o);
-    $c->{ccc}{value}++;
-    $c->{ddd}{value}++;
+    $c->{ccc}[0]{value}++;
+    $c->{ddd}[0]{value}++;
 
-    is $o->{ccc}{value}, 300;
-    is $c->{ccc}{value}, 302;
-    is $c->{ccc}{bar},   42,  'clone methods in clone()';
+    is $o->{ccc}[0]{value}, 300;
+    is $c->{ccc}[0]{value}, 302;
+    is $c->{ccc}[0]{bar},   42,  'clone methods in clone()';
 
     $o = FatalClonable->new(foo => 10);
     eval{
