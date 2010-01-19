@@ -167,6 +167,9 @@ dc_call_sv1(pTHX_ SV* const proc, SV* const arg1) {
     dSP;
     SV* ret;
 
+    assert(proc);
+    assert(arg1);
+
     ENTER;
     SAVETMPS;
 
@@ -224,7 +227,7 @@ dc_clone_object(pTHX_ pMY_CXT_ SV* const cloning, SV* const method_sv) {
 
     /* has its own clone method */
     if(dc_need_to_call(aTHX_ aMY_CXT_ GvCV(method))){
-        SV* const x = dc_call_sv1(aTHX_ (SV*)method, cloning);
+        SV* const x = dc_call_sv1(aTHX_ (SV*)GvCV(method), cloning);
 
         if(!SvROK(x)){
             croak("Cloning method '%"SVf"' returned %s, but it must return a reference",
