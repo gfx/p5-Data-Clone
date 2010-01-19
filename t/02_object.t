@@ -41,13 +41,26 @@ use Data::Clone;
 }
 
 for(1 .. 2){ # do it twice to test internal data
+    note($_);
 
-    my $o = MyNoclonable->new(foo => 10);
-    my $c = clone($o);
+    my($o, $c);
 
-    is $c, $o, "($_)";
+    $o = MyNoclonable->new(foo => 10);
+
+    eval {
+        $c = clone($o);
+    };
+    like $@, qr/Non-clonable object/, 'die on non-clonables';
+    is $c, undef;
+
+    {
+        local $Data::Clone::ObjectCallback = sub{ $_[0] };
+        $c = clone($o);
+    }
+
+    is $c, $o;
     $c->{foo}++;
-    is $o->{foo}, 11, 'noclonable';
+    is $o->{foo}, 11, 'noclonable with surface copy';
 
     $o = MyClonable->new(foo => 10);
     $c = clone($o);
@@ -58,26 +71,27 @@ for(1 .. 2){ # do it twice to test internal data
     $o = MyCustomClonable->new(foo => 10);
     $c = clone($o);
     isnt $c, $o;
+
     $c->{foo}++;
     is $o->{foo}, 10, 'clonable';
     is_deeply $c, { foo => 11, bar => 42 }, 'custom clone()';
 
     $o = MyClonable->new(
-        aaa => [MyCustomClonable->new(value => 100)],
-        bbb => [MyCustomClonable->new(value => 200)],
+        aaa => [[42], MyCustomClonable->new(value => 100)],
+        bbb => [[42], MyCustomClonable->new(value => 200)],
     );
     $c = clone($o);
 
-    $c->{aaa}[0]{value}++;
-    $c->{bbb}[0]{value}++;
+    $c->{aaa}[1]{value}++;
+    $c->{bbb}[1]{value}++;
 
-    is $o->{aaa}[0]{value}, 100, 'clone() is reentrant';
-    is $c->{aaa}[0]{value}, 101;
-    is $c->{aaa}[0]{bar},    42;
+    is $o->{aaa}[1]{value}, 100, 'clone() is reentrant';
+    is $c->{aaa}[1]{value}, 101;
+    is $c->{aaa}[1]{bar},    42;
 
-    is $o->{bbb}[0]{value}, 200, 'clone() is reentrant';
-    is $c->{bbb}[0]{value}, 201;
-    is $c->{bbb}[0]{bar},    42;
+    is $o->{bbb}[1]{value}, 200, 'clone() is reentrant';
+    is $c->{bbb}[1]{value}, 201;
+    is $c->{bbb}[1]{bar},    42;
 
     $o = MyCustomClonable->new();
     $o->{ccc} = [MyCustomClonable->new(value => 300)];

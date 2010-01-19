@@ -29,19 +29,8 @@ for(1 .. 2){ # do it twice to test internal data
         [\*STDOUT, \*STDOUT],
         { key => [ 'value', \&ok ] },
         { foo => { bar => { baz => 42 } } },
-        bless({foo => "bar"}, 'Foo'),
-
-        do{
-            my $o = tie my(%h), 'Tie::StdHash';
-            %{$o} = (foo => 'bar');
-            \%h;
-        },
-        do{
-            my $o = tie my(@a), 'Tie::StdArray';
-            @{$o} = ('foo', 42);
-            \@a;
-        },
     ){
+        note("for $data");
         is Dumper(clone($data)),  Dumper($data),  'data';
         is Dumper(clone(\$data)), Dumper(\$data), 'data ref';
     }

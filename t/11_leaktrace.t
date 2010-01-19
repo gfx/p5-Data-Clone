@@ -48,6 +48,7 @@ no_leaks_ok {
 } or die "Memory leaked";
 
 no_leaks_ok {
+    local $Data::Clone::ObjectCallback = sub{ $_[0] };
     my $o = MyNoclonable->new(foo => 10);
     my $c = clone($o);
 };

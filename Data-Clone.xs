@@ -22,6 +22,10 @@ typedef struct {
     HV* seen;
     CV* caller_cv;
     GV* my_clone;
+    GV* object_callback;
+
+    SV* clone_method;    /* "clone" */
+    SV* tieclone_method; /* "TIECLONE" */
 } my_cxt_t;
 START_MY_CXT
 
@@ -80,13 +84,15 @@ clone_av_to(pTHX_ pMY_CXT_ AV* const cloning, AV* const cloned) {
 
 
 static GV*
-find_method_pvn(pTHX_ HV* const stash, const char* const name, I32 const namelen) {
-    GV** const gvp = (GV**)hv_fetch(stash, name, namelen, FALSE);
-    if(gvp && isGV(*gvp) && GvCV(*gvp)){ /* shortcut */
-        return *gvp;
+find_method_sv(pTHX_ HV* const stash, SV* const name) {
+    HE* const he = hv_fetch_ent(stash, name, FALSE, 0U);
+
+    if(he && isGV(HeVAL(he)) && GvCV((GV*)HeVAL(he))){ /* shortcut */
+        return (GV*)HeVAL(he);
     }
 
-    return gv_fetchmeth_autoload(stash, name, namelen, 0);
+    assert(SvPOKp(name));
+    return gv_fetchmeth_autoload(stash, SvPVX(name), SvCUR(name), 0);
 }
 
 static int
@@ -157,11 +163,89 @@ store_to_seen(pTHX_ pMY_CXT_ SV* const sv, SV* const proto) {
 }
 
 static SV*
+dc_call_sv1(pTHX_ SV* const proc, SV* const arg1) {
+    dSP;
+    SV* ret;
+
+    ENTER;
+    SAVETMPS;
+
+    PUSHMARK(SP);
+    XPUSHs(arg1);
+    PUTBACK;
+
+    call_sv(proc, G_SCALAR);
+
+    SPAGAIN;
+    ret = POPs;
+    PUTBACK;
+
+    SvREFCNT_inc_simple_void_NN(ret);
+
+    FREETMPS;
+    LEAVE;
+
+    return sv_2mortal(ret);
+}
+
+static int
+dc_need_to_call(pTHX_ pMY_CXT_ const CV* const method) {
+    //warn("dc_need_co_call 0x%p 0x%p 0x%p", method, GvCV(MY_CXT.my_clone), MY_CXT.caller_cv);
+
+    return method != GvCV(MY_CXT.my_clone) && method != MY_CXT.caller_cv;
+}
+
+
+static SV*
+dc_clone_object(pTHX_ pMY_CXT_ SV* const cloning, SV* const method_sv) {
+    SV* const sv     = SvRV(cloning);
+    GV* const method = find_method_sv(aTHX_ SvSTASH(sv), method_sv);
+
+    if(!method){ /* not a clonable object */
+        SV* const object_callback = GvSVn(MY_CXT.object_callback);
+        /* try to $Data::Clone::ObjectCallback->($cloning) */
+
+        SvGETMAGIC(object_callback);
+
+        if(SvOK(object_callback)){
+            SV* const x = dc_call_sv1(aTHX_ object_callback, cloning);
+
+            if(!SvROK(x)){
+                croak("ObjectCallback function returned %s, but it must return a reference",
+                    SvOK(x) ? SvPV_nolen_const(x) : "undef");
+            }
+
+            return x;
+        }
+
+        Perl_croak(aTHX_ "Non-clonable object %"SVf" found (missing a %"SVf" method)",
+            cloning, method_sv);
+    }
+
+    /* has its own clone method */
+    if(dc_need_to_call(aTHX_ aMY_CXT_ GvCV(method))){
+        SV* const x = dc_call_sv1(aTHX_ (SV*)method, cloning);
+
+        if(!SvROK(x)){
+            croak("Cloning method '%"SVf"' returned %s, but it must return a reference",
+                method_sv, SvOK(x) ? SvPV_nolen_const(x) : "undef");
+        }
+
+        return x;
+    }
+    else { /* default clone() behavior: deep copy */
+        return NULL;
+    }
+}
+
+
+static SV*
 clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
     int may_be_circular;
     SV*  sv;
     SV*  proto;
     SV*  cloned;
+    MAGIC* mg;
     //CV* old_cv;
 
     assert(cloning);
@@ -178,39 +262,28 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
         }
     }
 
-    if(SvOBJECT(sv)){
-        GV* const method = find_method_pvn(aTHX_ SvSTASH(sv), STR_WITH_LEN("clone"));
+    if(SvOBJECT(sv) && !SvRXOK(cloning)){
+        proto = dc_clone_object(aTHX_ aMY_CXT_ cloning, MY_CXT.clone_method);
 
-        if(!method){ /* not a clonable object */
-            proto = sv;
+        if(proto){
+            proto = SvRV(proto);
             goto finish;
         }
 
-        /* has its own clone method */
-        if(GvCV(method) != GvCV(MY_CXT.my_clone)
-            && GvCV(method) != MY_CXT.caller_cv){
-            dSP;
+        /* fall through to make a deep copy */
+    }
+    else if((mg = SvTIED_mg(sv, PERL_MAGIC_tied))){
+        assert(SvTYPE(sv) == SVt_PVAV || SvTYPE(sv) == SVt_PVHV);
+        proto = dc_clone_object(aTHX_ aMY_CXT_ SvTIED_obj(sv, mg), MY_CXT.tieclone_method);
 
-            ENTER;
-            SAVETMPS;
-
-            PUSHMARK(SP);
-            XPUSHs(cloning);
-            PUTBACK;
-
-            call_sv((SV*)method, G_SCALAR);
-
-            SPAGAIN;
-            cloned = POPs;
-            PUTBACK;
-
-            SvREFCNT_inc_simple_void_NN(cloned);
-
-            FREETMPS;
-            LEAVE;
-            return cloned;
+        if(proto){
+            SV* const varsv = (SvTYPE(sv) == SVt_PVHV ? newHV() : newAV()); // can we use newSV_type()? 
+            sv_magic(varsv,  proto, PERL_MAGIC_tied, NULL, 0);
+            proto = varsv;
+            goto finish;
         }
-        /* fall through to the default cloneing routine */
+
+        /* fall through to make a deep copy */
     }
 
     /* XXX: need to save caller_cv, or not? */
@@ -283,6 +356,11 @@ my_cxt_initialize(pTHX_ pMY_CXT) {
     MY_CXT.depth    = 0;
     MY_CXT.seen     = newHV();
     MY_CXT.my_clone = CvGV(get_cvs("Data::Clone::clone", GV_ADD));
+
+    MY_CXT.object_callback = gv_fetchpvs("Data::Clone::ObjectCallback", GV_ADDMULTI, SVt_PV);
+
+    MY_CXT.clone_method    = newSVpvs_share("clone");
+    MY_CXT.tieclone_method = newSVpvs_share("TIECLONE");
 }
 
 MODULE = Data::Clone        PACKAGE = Data::Clone
@@ -310,14 +388,6 @@ CODE:
 
 void
 clone(SV* sv)
-CODE:
-{
-    ST(0) = sv_clone(sv);
-    XSRETURN(1);
-}
-
-void
-data_clone(SV* sv)
 CODE:
 {
     ST(0) = sv_clone(sv);

@@ -53,7 +53,10 @@ for(1 .. 3){
         usleep 10;;
 
         my $o = MyNoclonable->new(foo => 10);
-        my $c = clone($o);
+        my $c = do{
+            local $Data::Clone::ObjectCallback = sub{ $_[0] };
+            clone($o);
+        };
 
         is $c, $o, "tid - " . threads->tid;
         $c->{foo}++;

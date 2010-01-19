@@ -10,7 +10,13 @@ XSLoader::load(__PACKAGE__, $VERSION);
 
 use parent qw(Exporter);
 our @EXPORT    = qw(clone);
-our @EXPORT_OK = qw(data_clone);
+our @EXPORT_OK = qw(data_clone TIECLONE);
+
+sub data_clone;
+*data_clone = \&clone; # alias
+
+sub TIECLONE;
+*TIECLONE = \&clone; # alias
 
 1;
 __END__
