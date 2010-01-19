@@ -38,12 +38,19 @@ my $c_clone_called;
         return $cloned;
     }
 
+    package D;
+    our @ISA = qw(C);
+
+    package E;
+    our @ISA = qw(D);
 }
 
 my $b = B->new(foo => 10);
 my $c = C->new(bar => 20);
 
 for(1 .. 2){
+    note($_);
+
     is Dumper($b->clone), Dumper(bless { foo => 10 }, 'B'), 'inherited clone method';
     is Dumper(clone($b)), Dumper(bless { foo => 10 }, 'B'), 'inherited clone method via clone() function';
 
@@ -59,22 +66,25 @@ for(1 .. 2){
     is Dumper($c), Dumper(bless { bar => 20 }, 'C');
 
 
-    my @h = ( C->new(a => 1), C->new(a => 2), C->new(a => 3) );
-    $c_clone_called = 0;
-    is Dumper(clone(\@h)),
-       Dumper([ ( C->new(a => 1, c_clone => 1),
-                  C->new(a => 2, c_clone => 1),
-                  C->new(a => 3, c_clone => 1) ) ]);
-    is $c_clone_called, 3;
+    for my $class(qw(C D E)){
+        note("for $class");
 
-    my $o = C->new( c => [C->new(foo => 42)], c2 => [C->new(foo => 52)], );
-    $c_clone_called = 0;
+        my @h = ( $class->new(a => 1), $class->new(a => 2), $class->new(a => 3) );
+        $c_clone_called = 0;
+        is Dumper(clone(\@h)),
+           Dumper([ ( $class->new(a => 1, c_clone => 1),
+                      $class->new(a => 2, c_clone => 1),
+                      $class->new(a => 3, c_clone => 1) ) ]);
+        is $c_clone_called, 3;
 
-    is Dumper(clone($o)),
-       Dumper(C->new( c  => [C->new(foo => 42, c_clone => 1)],
-                      c2 => [C->new(foo => 52, c_clone => 1)], c_clone => 1));
-    is $c_clone_called, 3;
+        my $o = $class->new( c => [$class->new(foo => 42)], c2 => [$class->new(foo => 52)], );
+        $c_clone_called = 0;
 
+        is Dumper(clone($o)),
+           Dumper($class->new( c  => [$class->new(foo => 42, c_clone => 1)],
+                          c2 => [$class->new(foo => 52, c_clone => 1)], c_clone => 1));
+        is $c_clone_called, 3;
+    }
 }
 
 done_testing;
