@@ -8,6 +8,10 @@
 
 #include "data_clone.h"
 
+#ifndef SvRXOK
+#define SvRXOK(sv) (SvROK(sv) && SvMAGICAL(SvRV(sv)) && mg_find(SvRV(sv), PERL_MAGIC_qr))
+#endif
+
 #ifndef get_cvs
 #define get_cvs(s, flags) get_cv((s), (flags))
 #endif
