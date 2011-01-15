@@ -280,7 +280,9 @@ clone_rv(pTHX_ pMY_CXT_ SV* const cloning) {
         proto = dc_clone_object(aTHX_ aMY_CXT_ SvTIED_obj(sv, mg), MY_CXT.tieclone_method);
 
         if(proto){
-            SV* const varsv = (SvTYPE(sv) == SVt_PVHV ? newHV() : newAV()); // can we use newSV_type()? 
+            SV* const varsv = (SvTYPE(sv) == SVt_PVHV
+                ? (SV*)newHV()
+                : (SV*)newAV()); // can we use newSV_type()?
             sv_magic(varsv,  proto, PERL_MAGIC_tied, NULL, 0);
             proto = varsv;
             goto finish;
