@@ -20,3 +20,5 @@ gfx
 behaviour
 clonable
 CPAN
+Exportable
+
