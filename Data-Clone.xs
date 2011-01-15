@@ -217,7 +217,7 @@ dc_clone_object(pTHX_ pMY_CXT_ SV* const cloning, SV* const method_sv) {
             return x;
         }
 
-        Perl_croak(aTHX_ "Non-clonable object %"SVf" found (missing a %"SVf" method)",
+        croak("Non-clonable object %"SVf" found (missing a %"SVf" method)",
             cloning, method_sv);
     }
 
@@ -330,7 +330,7 @@ Data_Clone_sv_clone(pTHX_ SV* const sv) {
     dXCPT;
 
     if(++MY_CXT.depth == U32_MAX){
-        Perl_croak(aTHX_ "Depth overflow on clone()");
+        croak("Depth overflow on clone()");
     }
 
     old_cv = MY_CXT.caller_cv;
