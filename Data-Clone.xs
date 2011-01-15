@@ -50,7 +50,7 @@ clone_hv_to(pTHX_ pMY_CXT_ HV* const cloning, HV* const cloned) {
     HE* iter;
 
     assert(cloning);
-    assert(cloning);
+    assert(cloned);
 
     hv_iterinit(cloning);
     while((iter = hv_iternext(cloning))){
