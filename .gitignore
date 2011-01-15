@@ -21,3 +21,5 @@ cover_db*
 *.gno
 *.gcov
 *.c
+xshelper.h
+

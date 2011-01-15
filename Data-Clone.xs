@@ -1,19 +1,11 @@
 #define PERL_NO_GET_CONTEXT
 #define NO_XSLOCKS /* for exceptions */
-#include <EXTERN.h>
-#include <perl.h>
-#include <XSUB.h>
-
-#include "ppport.h"
+#include "xshelper.h"
 
 #include "data_clone.h"
 
 #ifndef SvRXOK
 #define SvRXOK(sv) (SvROK(sv) && SvMAGICAL(SvRV(sv)) && mg_find(SvRV(sv), PERL_MAGIC_qr))
-#endif
-
-#ifndef get_cvs
-#define get_cvs(s, flags) get_cv((s), (flags))
 #endif
 
 #define REINTERPRET_CAST(T, value) ((T)value)

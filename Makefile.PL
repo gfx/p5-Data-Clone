@@ -9,7 +9,7 @@ BEGIN{
 
 all_from 'lib/Data/Clone.pm';
 
-use_ppport 3.19;
+use_xshelper;
 cc_warnings;
 
 requires    'parent';
