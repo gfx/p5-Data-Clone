@@ -41,15 +41,16 @@ foreach (1 .. 2){
 
     my $c;
     eval{
+        local $Data::Clone::ObjectCallback = sub{ die 'Non-clonable object' };
         clone(\%h);
     };
-    like $@, qr/Non-clonable object/, 'clone() croaks by default';
+    like $@, qr/Non-clonable object/, 'clone() croaks';
 
     eval{
-        local $Data::Clone::ObjectCallback = sub{ $_[0] };
         $c = clone(\%h);
     };
 
+    is $@, '';
     is tied(%{$c}), tied(%h), 'sutface copy';
     $c->{foo}++;
     is Dumper($c),  Dumper({ foo => 43, bar => "xyzzy" });
@@ -72,12 +73,12 @@ foreach (1 .. 2){
     @a = (42, "xyzzy");
 
     eval{
+        local $Data::Clone::ObjectCallback = sub{ die 'Non-clonable object' };
         clone(\@a);
     };
-    like $@, qr/Non-clonable object/, 'clone() croaks by default';
+    like $@, qr/Non-clonable object/, 'clone() croaks';
 
     eval{
-        local $Data::Clone::ObjectCallback = sub{ $_[0] };
         $c = clone(\@a);
     };
 

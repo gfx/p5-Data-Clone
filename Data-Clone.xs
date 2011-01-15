@@ -217,6 +217,7 @@ dc_clone_object(pTHX_ pMY_CXT_ SV* const cloning, SV* const method_sv) {
             return x;
         }
 
+        return sv_mortalcopy(cloning);
         croak("Non-clonable object %"SVf" found (missing a %"SVf" method)",
             cloning, method_sv);
     }

@@ -48,16 +48,17 @@ for(1 .. 2){ # do it twice to test internal data
     $o = MyNoclonable->new(foo => 10);
 
     eval {
+        local $Data::Clone::ObjectCallback = sub{ die 'Non-clonable object' };
         $c = clone($o);
     };
     like $@, qr/Non-clonable object/, 'die on non-clonables';
     is $c, undef;
 
-    {
-        local $Data::Clone::ObjectCallback = sub{ $_[0] };
+    eval {
         $c = clone($o);
-    }
+    };
 
+    is $@, '';
     is $c, $o;
     $c->{foo}++;
     is $o->{foo}, 11, 'noclonable with surface copy';
