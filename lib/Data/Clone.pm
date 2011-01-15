@@ -77,7 +77,7 @@ details.
 
 =head2 Cloning policy
 
-A cloning policy is a rule that how a routine clones data. Here is
+A cloning policy is a rule that how a cloning routine copies data. Here is
 the cloning policy of C<Data::Clone>.
 
 =head3 Non-reference values
@@ -88,7 +88,7 @@ Non-reference values are copied normally, which will drop their magics.
 
 Scalar references including references to other types of references
 are B<not> copied deeply. They are copied on surface
-because it is typically used to refer to something special, namely
+because it is typically used to refer to something unique, namely
 global variables or magical variables.
 
 =head3 Array references
@@ -108,8 +108,8 @@ These references are B<not> copied deeply. They are copied on surface.
 =head3 Blessed references (objects)
 
 Blessed references are B<not> copied deeply by default, because objects might
-have external resource which C<Data::Clone> could not deal with.
-They will be copied deeply only if Data::Clone knows they are clonable,
+have external resources which C<Data::Clone> could not deal with.
+They will be copied deeply only if C<Data::Clone> knows they are clonable,
 i.e. they have a C<clone> method.
 
 If you want to make an object clonable, you can use the C<clone()> function
