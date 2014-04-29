@@ -166,7 +166,7 @@ Returns a copy of I<Scalar>.
 
 =head2 Exportable functions
 
-=head3 B<< data_clone(Salar) >>
+=head3 B<< data_clone(Scalar) >>
 
 Returns a copy of I<Scalar>.
 
