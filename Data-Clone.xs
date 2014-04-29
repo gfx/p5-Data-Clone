@@ -392,7 +392,8 @@ void
 clone(SV* sv)
 CODE:
 {
-    ST(0) = sv_clone(sv);
+    sv = sv_clone(sv);
+    ST(0) = sv;
     XSRETURN(1);
 }
 
