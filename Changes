@@ -1,5 +1,8 @@
 Revision history for Perl extension Data::Clone
 
+0.004 2014-05-07 06:58:25+0900
+    - Fix against Perl 5.19 (#1, by tomhukins)
+
 0.003 2011-01-15 23:02:18
     - Cloning normal object died as of 0.002, but it seems too strict
 
