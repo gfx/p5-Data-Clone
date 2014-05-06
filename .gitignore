@@ -9,7 +9,8 @@ Data-Clone-*
 Makefile*
 !Makefile.PL
 *blib
-META.yml
+META.*
+MYMETA.*
 inc/
 MANIFEST
 *.out
