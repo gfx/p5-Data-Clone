@@ -1,5 +1,7 @@
 Revision history for Perl extension Data::Clone
 
+{{$NEXT}}
+
 0.005 2023-11-21
     - Fix against Perl 5.38 (#3, by demerphq)
 

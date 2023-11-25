@@ -24,3 +24,11 @@ cover_db*
 *.c
 xshelper.h
 
+/Data-Clone-*
+/.build
+/_build_params
+/Build
+/Build.bat
+!Build/
+!META.json
+!LICENSE
