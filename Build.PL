@@ -37,6 +37,8 @@ my %args = (
         'Devel::PPPort' => '3.19',
         'ExtUtils::MakeMaker' => '6.59',
         'ExtUtils::ParseXS' => '3.18',
+        'Module::Build' => '0',
+        'Module::Build::XSUtil' => '0',
         'Test::More' => '0.88',
         'Test::Requires' => '0.03',
     },

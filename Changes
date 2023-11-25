@@ -2,6 +2,10 @@ Revision history for Perl extension Data::Clone
 
 {{$NEXT}}
 
+0.006 2023-11-25T05:46:27Z
+    - No code changes
+    - Migrate from Module::Install to Minilla
+
 0.005 2023-11-21
     - Fix against Perl 5.38 (#3, by demerphq)
 

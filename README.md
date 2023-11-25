@@ -5,7 +5,7 @@ Data::Clone - Polymorphic data cloning
 
 # VERSION
 
-This document describes Data::Clone version 0.004.
+This document describes Data::Clone version 0.006.
 
 # SYNOPSIS
 
